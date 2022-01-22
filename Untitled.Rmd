@@ -1,0 +1,185 @@
+---
+title: "Untitled"
+author: "Nishith Ranjon Roy"
+date: "1/17/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(keras)
+library(tensorflow)
+```
+
+## Loading the dataset and basic stractures
+```{r}
+mnist <- readRDS("mnist.Rds")
+str(mnist)
+```
+
+```{r}
+par(mfcol = c(3,4))
+for(i in 1:12){
+mnist$train$x[i,,] %>% 
+        apply(MARGIN = 2,rev) %>% 
+        t() %>% 
+        image(col=gray((0:255)/255), main = mnist$train$y[i])
+    }
+```
+
+## Distribution of the disit
+```{r}
+(mnist$train$y %>% 
+    table() %>% 
+    prop.table() %>% 
+    round(digits = 4))*100
+```
+
+## Split the data set
+```{r}
+train_x <- mnist$train$x
+train_y <- mnist$train$y
+test_x <- mnist$test$x
+test_y <- mnist$test$y
+```
+
+## Defining the model
+```{r}
+tf$random$set_seed(123)
+model <- 
+    keras_model_sequential(name = "Dense Model") %>% 
+    layer_dense(units = 300, activation = "relu", input_shape = 28*28) %>% 
+    layer_dense(units = 50, activation = "relu") %>% 
+    layer_dense(units = 10, activation = "softmax")
+
+model
+```
+
+## Adding the compiler
+```{r}
+model %>%
+    compile(optimizer = "adam",
+            loss = "categorical_crossentropy",
+            metrics = c("accuracy"))
+```
+
+## Preprocessing the data
+```{r}
+train_x <- array_reshape(train_x, dim = c(60000,28*28))/255
+test_x <- array_reshape(test_x, dim = c(10000,28*28))/255
+
+train_y <- to_categorical(train_y)
+test_y <- to_categorical(test_y)
+```
+
+## Train
+```{r}
+plot <- 
+    model %>% 
+    fit(train_x, train_y, epochs = 5, batch_size = 28, validation_split = 0.2)
+
+plot(plot)
+```
+
+
+## Evaluation
+```{r}
+model %>% 
+    evaluate(test_x, test_y)
+```
+
+# CNN
+
+## Reshaping the array for the training
+```{r}
+train_x <- array_reshape(mnist$train$x, c(dim(mnist$train$x),1))
+test_x <- array_reshape(mnist$test$x, c(dim(mnist$test$x),1))
+```
+
+## Building the model
+```{r}
+tf$random$set_seed(123)
+
+model <- 
+    keras_model_sequential(name = "CNN") %>% 
+    
+    # Adding a 2d tensor layer
+    layer_conv_2d(filters = 32, 
+                  kernel_size = c(5,5), 
+                  activation = "relu", 
+                  input_shape = c(28,28,1)) %>% 
+    
+    
+    # Adding a 2d tensor layer
+    layer_conv_2d(filters = 32, 
+                  kernel_size = c(3,3), 
+                  activation = "relu") %>% 
+    
+    
+    # Adding a max pulling layer
+    layer_max_pooling_2d(pool_size = c(3,3)) %>% 
+    
+    
+    # Adding a 2d tensor layer
+    layer_conv_2d(filters = 32, 
+                  kernel_size = c(3,3), 
+                  activation = "relu") %>% 
+    
+   
+    # Adding a max pulling layer
+    layer_max_pooling_2d(pool_size = c(5,5)) %>% 
+    
+    # Adding a flatten layer
+    layer_flatten() %>% 
+    
+    # Adding a dense layer
+    layer_dense(units = 16, 
+                activation = "relu") %>% 
+    
+    # Adding a dense layer
+    layer_dense(units = 10, 
+                activation = "softmax",
+                name = "Output") 
+    
+model
+```
+
+## Adding the compiler
+```{r}
+model %>%
+    compile(
+        optimizer = "adam",
+        loss = "categorical_crossentropy",
+        metrics = "accuracy"
+    )
+
+plot <- 
+    model %>% 
+    fit(train_x, train_y, epoch = 15, batch_size = 128, validation_split = .2)
+
+plot(plot)
+```
+
+
+## Evaluation
+```{r}
+model %>% 
+    evaluate(test_x, test_y)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
